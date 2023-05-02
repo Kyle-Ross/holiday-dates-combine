@@ -34,60 +34,90 @@ pd.set_option('display.precision', 2)
 # Setting csv encoding type
 encoding_type = 'utf-8'
 
+# ---------------------
 # Preparing school data
+# ---------------------
+# Defining target csv file name in cd
 school_dates = r"AU School Hols - Data - 2010-2026 - dayrows.csv"
+# Setting encoding type
 school_df = pd.read_csv(school_dates, encoding=encoding_type)
+# Renaming columns
 school_df = school_df.rename({"Calendar_Year": "Year", "School_Period_Name": "School_Hol_Desc"}, axis=1)
+# Dropping columns
 school_df = school_df.drop(["School_Period_Type", "Year"], axis=1)
+# Creating bool column which contains 'True'
 school_df["has_school_hol"] = True
+# Converting the Date field to a date, trying two formats
 try:
     school_df['Date'] = pd.to_datetime(school_df['Date'], format='%Y-%m-%d')
 except ValueError:
     school_df['Date'] = pd.to_datetime(school_df['Date'], format='%d/%m/%Y')
+# Change all column names to upper case
 school_df.columns = map(str.upper, school_df.columns)
+# Drop any duplicates from the data
 school_df = school_df.drop_duplicates()
-print("School Dates data df 'school_df' prepared in format:"
-      " ")
-print(school_df.head())
 # Concatenating values where multiple schools descriptions are on one date
 school_df['SCHOOL_HOL_DESC'] = school_df[['DATE', 'HAS_SCHOOL_HOL', 'SCHOOL_HOL_DESC', 'STATE']] \
     .groupby(['DATE', 'HAS_SCHOOL_HOL', 'STATE'])['SCHOOL_HOL_DESC'] \
     .transform(lambda x: '|'.join(x))
 school_df = school_df[['DATE', 'HAS_SCHOOL_HOL', 'SCHOOL_HOL_DESC', 'STATE']].drop_duplicates()
+# Descriptive print out
+print("School Dates data df 'school_df' prepared in format:"
+      " ")
+print(school_df.head())
 
+# ------------------------------
 # Preparing public holiday data
+# ------------------------------
+# Defining target csv file name in cd
 public_dates = r"AU Pub Hols Data 2010-2026 - db_friendly.csv"
+# Setting encoding type
 public_df = pd.read_csv(public_dates, encoding=encoding_type)
+# Renaming columns
 public_df = public_df.rename({"CAL_DATE": "Date",
                               "REGION": "State", },
                              axis=1)
+# Dropping columns
 public_df = public_df.drop(["IS_PUBLIC_HOLIDAY", "IS_SCHOOL_HOLIDAY", "SPCL_EVNT_DESC"], axis=1)
+# Creating bool column which contains 'True'
 public_df["has_pub_hol"] = True
+# Converting the Date field to a date, trying two formats
 try:
     public_df['Date'] = pd.to_datetime(public_df['Date'], format='%Y-%m-%d')
 except ValueError:
     public_df['Date'] = pd.to_datetime(public_df['Date'], format='%d/%m/%Y')
+# Change all column names to upper case
 public_df.columns = map(str.upper, public_df.columns)
+# Dropping any duplicates
 public_df = public_df.drop_duplicates()
 # Concatenating values where multiple public hol descriptions are on one date
 public_df['PUBLIC_HOLIDAY_DESC'] = public_df[['DATE', 'HAS_PUB_HOL', 'PUBLIC_HOLIDAY_DESC', 'STATE']] \
     .groupby(['DATE', 'HAS_PUB_HOL', 'STATE'])['PUBLIC_HOLIDAY_DESC'] \
     .transform(lambda x: '|'.join(x))
 public_df = public_df[['DATE', 'HAS_PUB_HOL', 'PUBLIC_HOLIDAY_DESC', 'STATE']].drop_duplicates()
+# Descriptive print out
 print("-----------------------------")
 print("Public Dates data df 'public_df' prepared in format:"
       " ")
 print(public_df.head())
 
-# Preparing special dates data
+# ------------------------------
+# Preparing special days data
+# ------------------------------
+# Defining target csv file name in cd
 special_dates = r"Special Days.csv"
+# Setting encoding type
 special_df = pd.read_csv(special_dates, encoding=encoding_type)
+# Renaming columns
 special_df = special_df.rename({"Name": "Special_Day_Desc"}, axis=1)
+# Creating bool column which contains 'True'
 special_df["has_special_day"] = True
+# Converting the Date field to a date, trying two formats
 try:
     special_df['Date'] = pd.to_datetime(special_df['Date'], format='%Y-%m-%d')
 except ValueError:
     special_df['Date'] = pd.to_datetime(special_df['Date'], format='%d/%m/%Y')
+# Change all column names to upper case
 special_df.columns = map(str.upper, special_df.columns)
 # Concatenating values where multiple special descriptions are on one date
 special_df['SPECIAL_DAY_DESC'] = special_df[['DATE', 'HAS_SPECIAL_DAY', 'SPECIAL_DAY_DESC']] \
@@ -95,9 +125,9 @@ special_df['SPECIAL_DAY_DESC'] = special_df[['DATE', 'HAS_SPECIAL_DAY', 'SPECIAL
     .transform(lambda x: '|'.join(x))
 special_df = special_df[['DATE', 'HAS_SPECIAL_DAY', 'SPECIAL_DAY_DESC']].drop_duplicates()
 special_df = special_df.drop_duplicates()
-
-# Multiplying dataframe across states
+# Multiplying dataframe across states using the function
 special_df = state_multiplier(special_df, 'DATE', 'STATE')
+# Descriptive print out
 print("-----------------------------")
 print("Special_Days data df 'special_df' prepared in format:"
       " ")
@@ -122,6 +152,7 @@ dates_states = state_multiplier(date_range, 'Date', 'State')
 # Setting column names to upper case
 dates_states.columns = map(str.upper, dates_states.columns)
 
+# Descriptive printout
 print("-----------------------------")
 print("Date range data df 'dates_states' prepared in format:"
       " ")
@@ -131,7 +162,7 @@ print(dates_states.head())
 # Joining data sources
 # --------------------
 
-# Merging data
+# Merging data, joining on Date and State
 combo_df = dates_states \
     .merge(school_df, how='left', on=["DATE", "STATE"]) \
     .merge(public_df, how='left', on=["DATE", "STATE"]) \
